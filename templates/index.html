@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Watch List &mdash; My Reviews</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+   <header class="marquee">
+    <div class="marquee-top">
+      <div class="eyebrow">Now Screening &middot; My Personal Log</div>
+      <h1>The Watch List</h1>
+      <p>Everything I've watched, rated, and have opinions about &mdash; kept in one running ledger.</p>
+      <span class="stub-count">{{ reviews|length }} review{{ '' if reviews|length == 1 else 's' }} on file</span>
+    </div>
+  </header>
+
+  <section class="forest-section">
+
+    <div class="forest-fixed">
+      <img src="{{ url_for('static', filename='img/forest-parallax.gif') }}"
+           alt="Looping forest scene">
+    </div>
+
+    <div class="forest-content">
+
+      <div class="new-review-wrap">
+
+        <button id="toggle-form" type="button">+ New Review</button>
+
+        <form id="review-form"
+              class="review-form"
+              action="{{ url_for('add_review') }}"
+              method="POST"
+              enctype="multipart/form-data">
+
+          <h2 id="form-heading">Log a new review</h2>
+
+          <div class="field">
+            <label for="title">Title</label>
+            <input type="text"
+                   id="title"
+                   name="title"
+                   placeholder="e.g. Dune: Part Two"
+                   required
+                   maxlength="120">
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="category">Verdict</label>
+              <select id="category" name="category" required>
+                {% for c in categories %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="image">Poster / still image</label>
+              <input type="file"
+                     id="image"
+                     name="image"
+                     accept=".png,.jpg,.jpeg,.gif,.webp">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="summary">Quick take</label>
+            <textarea id="summary"
+                      name="summary"
+                      placeholder="Your short, headline review"
+                      required
+                      maxlength="240"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="details">
+              More about it (optional &mdash; shown under "Show more")
+            </label>
+            <textarea id="details"
+                      name="details"
+                      placeholder="Spoiler-free deep dive, favorite scenes, who should watch it, etc."></textarea>
+          </div>
+
+          <div class="form-buttons">
+            <button type="submit"
+                    id="submit-btn"
+                    class="submit-btn">
+              Post Review
+            </button>
+
+            <button type="button"
+                    id="cancel-edit-btn"
+                    class="cancel-btn">
+              Cancel edit
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+
+      <main class="reviews">
+
+        {% if reviews|length == 0 %}
+          <div class="empty-state">
+            No reviews yet &mdash; hit "+ New Review" to log your first one.
+          </div>
+        {% endif %}
+
+        {% for r in reviews %}
+        <article class="row"
+                 data-id="{{ r.id }}"
+                 data-title="{{ r.title }}"
+                 data-category="{{ r.category }}"
+                 data-summary="{{ r.summary }}"
+                 data-details="{{ r.details or '' }}">
+
+          <div class="row-poster {{ '' if r.image else 'no-image' }}">
+            {% if r.image %}
+              <img src="{{ url_for('static', filename='uploads/' + r.image) }}"
+                   alt="{{ r.title }} poster">
+            {% else %}
+              <span>{{ r.title[0]|upper }}</span>
+            {% endif %}
+          </div>
+
+          <div class="row-content">
+
+            <div class="row-header">
+              <h3 class="row-title">{{ r.title }}</h3>
+              <span class="chip glow {{ r.category|lower|replace(' ', '-') }}">
+                {{ r.category }}
+              </span>
+            </div>
+
+            <div class="row-meta">
+              <span>Reviewed {{ r.created_at }}</span>
+            </div>
+
+            <p class="row-summary">{{ r.summary }}</p>
+
+            {% if r.details %}
+            <div class="row-details" id="details-{{ r.id }}">
+              <div class="details-label">More</div>
+              <p>{{ r.details }}</p>
+            </div>
+            {% endif %}
+
+            <div class="row-actions">
+
+              <div class="actions-left">
+                {% if r.details %}
+                <button type="button"
+                        class="show-more-btn"
+                        data-target="details-{{ r.id }}">
+                  Show more ▼
+                </button>
+                {% endif %}
+              </div>
+
+              <div class="actions-right">
+                <button type="button" class="edit-btn">Edit</button>
+
+                <form class="delete-form"
+                      action="{{ url_for('delete_review', review_id=r.id) }}"
+                      method="POST">
+
+                  <button type="submit" class="delete-btn">
+                    Remove
+                  </button>
+
+                </form>
+              </div>
+
+            </div>
+
+          </div>
+
+        </article>
+        {% endfor %}
+
+      </main>
+
+    </div>
+
+  </section>
+
+  <footer>
+    Kept on one page, on purpose.
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
