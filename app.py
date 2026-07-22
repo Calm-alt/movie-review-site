@@ -78,6 +78,8 @@ def upload_poster(file_storage, filename):
         "Content-Type": file_storage.mimetype or "application/octet-stream",
     }
     resp = requests.post(url, headers=headers, data=file_storage.read())
+    if resp.status_code not in (200, 201):
+        print(f"[DEBUG] Poster upload failed: {resp.status_code} - {resp.text}")
     return resp.status_code in (200, 201)
 
 
