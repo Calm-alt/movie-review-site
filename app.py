@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import os
 from datetime import datetime
+from functools import wraps
 from werkzeug.utils import secure_filename
 
 from flask_sqlalchemy import SQLAlchemy
@@ -12,6 +13,20 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 CATEGORIES = ["Must Watch", "Watchable", "Skip It"]
 
 app = Flask(__name__)
+
+app.secret_key = os.environ.get("SECRET_KEY", "12345678")
+
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Nonsense1")
+
+
+def admin_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("is_admin"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
@@ -114,7 +129,7 @@ def index():
         reviews=reviews,
         categories=CATEGORIES
     )
-    
+
 # ============================
 # ADD REVIEW
 # ============================
@@ -172,6 +187,7 @@ def add_review():
 # ============================
 
 @app.route("/update/<int:review_id>", methods=["POST"])
+@admin_required
 def update_review(review_id):
 
     review = Review.query.get_or_404(review_id)
@@ -231,6 +247,7 @@ def update_review(review_id):
 # ============================
 
 @app.route("/delete/<int:review_id>", methods=["POST"])
+@admin_required
 def delete_review(review_id):
 
     review = Review.query.get_or_404(review_id)
@@ -248,6 +265,27 @@ def delete_review(review_id):
     db.session.delete(review)
     db.session.commit()
 
+    return redirect(url_for("index"))
+
+# ============================
+# AUTH
+# ============================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if password == ADMIN_PASSWORD:
+            session["is_admin"] = True
+            return redirect(url_for("index"))
+        error = "Wrong password."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("is_admin", None)
     return redirect(url_for("index"))
 
 

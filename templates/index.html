@@ -12,7 +12,14 @@
 
    <header class="marquee">
     <div class="marquee-top">
-      <div class="eyebrow">Now Screening &middot; My Personal Log</div>
+     <div class="eyebrow">
+  Now Screening &middot; My Personal Log
+  {% if session.get('is_admin') %}
+    &middot; <form action="{{ url_for('logout') }}" method="POST" style="display:inline;"><button type="submit" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;padding:0;">Log out</button></form>
+  {% else %}
+    &middot; <a href="{{ url_for('login') }}" style="color:inherit;">Admin login</a>
+  {% endif %}
+</div>
       <h1>The Watch List</h1>
       <p>Everything I've watched, rated, and have opinions about &mdash; kept in one running ledger.</p>
       <span class="stub-count">{{ reviews|length }} review{{ '' if reviews|length == 1 else 's' }} on file</span>
@@ -165,18 +172,13 @@
               </div>
 
               <div class="actions-right">
-                <button type="button" class="edit-btn">Edit</button>
-
-                <form class="delete-form"
-                      action="{{ url_for('delete_review', review_id=r.id) }}"
-                      method="POST">
-
-                  <button type="submit" class="delete-btn">
-                    Remove
-                  </button>
-
-                </form>
-              </div>
+  {% if session.get('is_admin') %}
+    <button type="button" class="edit-btn">Edit</button>
+    <form class="delete-form" action="{{ url_for('delete_review', review_id=r.id) }}" method="POST">
+      <button type="submit" class="delete-btn">Remove</button>
+    </form>
+  {% endif %}
+</div>
 
             </div>
 
