@@ -175,8 +175,14 @@ a { color: inherit; }
 
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
 @media (max-width: 32rem) {
   .row-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 40rem) {
+  .row-3 { grid-template-columns: 1fr; }
 }
 
 .field input[type="file"] {
@@ -299,6 +305,15 @@ a { color: inherit; }
   line-height: 1.25;
 }
 
+.chip-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 /* ---------- Verdict chip: calm, solid, no pulsing ---------- */
 
 .chip {
@@ -316,6 +331,15 @@ a { color: inherit; }
 .chip.must-watch { background: rgba(134, 194, 166, 0.16); color: var(--teal-light); border: 1px solid rgba(134, 194, 166, 0.4); }
 .chip.watchable { background: rgba(76, 136, 116, 0.2); color: var(--teal-mid); border: 1px solid rgba(76, 136, 116, 0.45); }
 .chip.skip-it { background: rgba(88, 104, 95, 0.2); color: var(--teal-dusty); border: 1px solid rgba(88, 104, 95, 0.45); }
+
+.chip.type {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--card-edge);
+}
+
+.chip.type.movie { color: var(--teal-light); border-color: rgba(134, 194, 166, 0.35); }
+.chip.type.tv-series { color: #c9b98a; border-color: rgba(201, 185, 138, 0.35); }
 
 .row-meta {
   font-family: var(--font-mono);

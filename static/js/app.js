@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelBtn = document.getElementById('cancel-edit-btn');
   const titleInput = document.getElementById('title');
   const categoryInput = document.getElementById('category');
+  const mediaTypeInput = document.getElementById('media_type');
   const summaryInput = document.getElementById('summary');
   const detailsInput = document.getElementById('details');
   const defaultAction = form.getAttribute('action');
@@ -49,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
       form.setAttribute('action', `/update/${card.dataset.id}`);
       titleInput.value = card.dataset.title;
       categoryInput.value = card.dataset.category;
+      mediaTypeInput.value = card.dataset.mediaType;
       summaryInput.value = card.dataset.summary;
       detailsInput.value = card.dataset.details;
       formHeading.textContent = 'Edit review';

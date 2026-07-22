@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import os
+import requests
 from datetime import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
@@ -11,6 +12,7 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 CATEGORIES = ["Must Watch", "Watchable", "Skip It"]
+MEDIA_TYPES = ["Movie", "TV Series"]
 
 app = Flask(__name__)
 
@@ -58,6 +60,47 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 # ============================
+# SUPABASE STORAGE (posters)
+# ============================
+# Replace the two placeholder values below with your actual project
+# URL and service_role key from Supabase (Project Settings -> API).
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://YOUR-PROJECT-REF.supabase.co")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "YOUR-SERVICE-ROLE-KEY")
+SUPABASE_BUCKET = "posters"
+
+
+def upload_poster(file_storage, filename):
+    """Uploads a file to Supabase Storage. Returns True on success."""
+    url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{filename}"
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": file_storage.mimetype or "application/octet-stream",
+    }
+    resp = requests.post(url, headers=headers, data=file_storage.read())
+    return resp.status_code in (200, 201)
+
+
+def delete_poster(filename):
+    """Deletes a file from Supabase Storage. Safe to call even if it doesn't exist."""
+    if not filename:
+        return
+    url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{filename}"
+    headers = {"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+    try:
+        requests.delete(url, headers=headers)
+    except requests.RequestException:
+        pass
+
+
+@app.context_processor
+def inject_poster_base_url():
+    return dict(
+        poster_base_url=f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/"
+    )
+
+
+# ============================
 # DATABASE MODEL
 # ============================
 
@@ -74,6 +117,12 @@ class Review(db.Model):
     category = db.Column(
         db.String(50),
         nullable=False
+    )
+
+    media_type = db.Column(
+        db.String(20),
+        nullable=False,
+        default=MEDIA_TYPES[0]
     )
 
     summary = db.Column(
@@ -127,7 +176,8 @@ def index():
     return render_template(
         "index.html",
         reviews=reviews,
-        categories=CATEGORIES
+        categories=CATEGORIES,
+        media_types=MEDIA_TYPES
     )
 
 # ============================
@@ -139,12 +189,18 @@ def add_review():
 
     title = request.form.get("title", "").strip()
     category = request.form.get("category", CATEGORIES[1])
+    media_type = request.form.get("media_type", MEDIA_TYPES[0])
     summary = request.form.get("summary", "").strip()
     details = request.form.get("details", "").strip()
 
     image_file = request.files.get("image")
 
-    if not title or not summary or category not in CATEGORIES:
+    if (
+        not title
+        or not summary
+        or category not in CATEGORIES
+        or media_type not in MEDIA_TYPES
+    ):
         return redirect(url_for("index"))
 
     filename = None
@@ -160,16 +216,13 @@ def add_review():
             f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.{ext}"
         )
 
-        image_file.save(
-            os.path.join(
-                app.config["UPLOAD_FOLDER"],
-                filename
-            )
-        )
+        if not upload_poster(image_file, filename):
+            filename = None
 
     review = Review(
         title=title,
         category=category,
+        media_type=media_type,
         summary=summary,
         details=details,
         image=filename,
@@ -194,16 +247,23 @@ def update_review(review_id):
 
     title = request.form.get("title", "").strip()
     category = request.form.get("category", CATEGORIES[1])
+    media_type = request.form.get("media_type", MEDIA_TYPES[0])
     summary = request.form.get("summary", "").strip()
     details = request.form.get("details", "").strip()
 
     image_file = request.files.get("image")
 
-    if not title or not summary or category not in CATEGORIES:
+    if (
+        not title
+        or not summary
+        or category not in CATEGORIES
+        or media_type not in MEDIA_TYPES
+    ):
         return redirect(url_for("index"))
 
     review.title = title
     review.category = category
+    review.media_type = media_type
     review.summary = summary
     review.details = details
 
@@ -213,15 +273,7 @@ def update_review(review_id):
         and allowed_file(image_file.filename)
     ):
 
-        if review.image:
-
-            old_path = os.path.join(
-                app.config["UPLOAD_FOLDER"],
-                review.image
-            )
-
-            if os.path.exists(old_path):
-                os.remove(old_path)
+        old_filename = review.image
 
         ext = image_file.filename.rsplit(".", 1)[1].lower()
 
@@ -229,14 +281,9 @@ def update_review(review_id):
             f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.{ext}"
         )
 
-        image_file.save(
-            os.path.join(
-                app.config["UPLOAD_FOLDER"],
-                filename
-            )
-        )
-
-        review.image = filename
+        if upload_poster(image_file, filename):
+            review.image = filename
+            delete_poster(old_filename)
 
     db.session.commit()
 
@@ -252,15 +299,7 @@ def delete_review(review_id):
 
     review = Review.query.get_or_404(review_id)
 
-    if review.image:
-
-        image_path = os.path.join(
-            app.config["UPLOAD_FOLDER"],
-            review.image
-        )
-
-        if os.path.exists(image_path):
-            os.remove(image_path)
+    delete_poster(review.image)
 
     db.session.delete(review)
     db.session.commit()
