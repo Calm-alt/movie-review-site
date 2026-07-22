@@ -21,6 +21,7 @@ app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 # ============================
 
 database_url = os.environ.get("DATABASE_URL")
+print(f"[DEBUG] Using database: {'SUPABASE/POSTGRES' if database_url else 'SQLITE (fallback!)'}")
 
 if not database_url:
     database_url = "sqlite:///reviews.db"
