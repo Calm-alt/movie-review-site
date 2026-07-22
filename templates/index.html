@@ -57,7 +57,16 @@
                    maxlength="120">
           </div>
 
-          <div class="row-2">
+          <div class="row-3">
+            <div class="field">
+              <label for="media_type">Type</label>
+              <select id="media_type" name="media_type" required>
+                {% for m in media_types %}
+                <option value="{{ m }}">{{ m }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
             <div class="field">
               <label for="category">Verdict</label>
               <select id="category" name="category" required>
@@ -125,12 +134,13 @@
                  data-id="{{ r.id }}"
                  data-title="{{ r.title }}"
                  data-category="{{ r.category }}"
+                 data-media-type="{{ r.media_type }}"
                  data-summary="{{ r.summary }}"
                  data-details="{{ r.details or '' }}">
 
           <div class="row-poster {{ '' if r.image else 'no-image' }}">
             {% if r.image %}
-              <img src="{{ url_for('static', filename='uploads/' + r.image) }}"
+              <img src="{{ poster_base_url }}{{ r.image }}"
                    alt="{{ r.title }} poster">
             {% else %}
               <span>{{ r.title[0]|upper }}</span>
@@ -141,9 +151,14 @@
 
             <div class="row-header">
               <h3 class="row-title">{{ r.title }}</h3>
-              <span class="chip glow {{ r.category|lower|replace(' ', '-') }}">
-                {{ r.category }}
-              </span>
+              <div class="chip-group">
+                <span class="chip type {{ r.media_type|lower|replace(' ', '-') }}">
+                  {{ r.media_type }}
+                </span>
+                <span class="chip glow {{ r.category|lower|replace(' ', '-') }}">
+                  {{ r.category }}
+                </span>
+              </div>
             </div>
 
             <div class="row-meta">
