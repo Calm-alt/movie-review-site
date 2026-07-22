@@ -1,137 +1,263 @@
 from flask import Flask, render_template, request, redirect, url_for
-import sqlite3
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
+from flask_sqlalchemy import SQLAlchemy
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
-DB_PATH = os.path.join(BASE_DIR, 'reviews.db')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-CATEGORIES = ['Must Watch', 'Watchable', 'Skip It']
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+CATEGORIES = ["Must Watch", "Watchable", "Skip It"]
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB upload cap
+
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
+
+# ============================
+# DATABASE
+# ============================
+
+database_url = os.environ.get("DATABASE_URL")
+
+if not database_url:
+    database_url = "sqlite:///reviews.db"
+
+# Render compatibility
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+# ============================
+# DATABASE MODEL
+# ============================
+
+class Review(db.Model):
+    __tablename__ = "reviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    title = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    category = db.Column(
+        db.String(50),
+        nullable=False
+    )
+
+    summary = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    details = db.Column(
+        db.Text
+    )
+
+    image = db.Column(
+        db.String(255)
+    )
+
+    created_at = db.Column(
+        db.String(50),
+        nullable=False
+    )
 
 
-def init_db():
-    conn = get_db()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            category TEXT NOT NULL,
-            summary TEXT NOT NULL,
-            details TEXT,
-            image TEXT,
-            created_at TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+with app.app_context():
+    db.create_all()
 
+
+# ============================
+# HELPERS
+# ============================
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower()
+        in ALLOWED_EXTENSIONS
+    )
 
 
-@app.route('/')
+# ============================
+# HOME PAGE
+# ============================
+
+@app.route("/")
 def index():
-    conn = get_db()
-    reviews = conn.execute('SELECT * FROM reviews ORDER BY id DESC').fetchall()
-    conn.close()
-    return render_template('index.html', reviews=reviews, categories=CATEGORIES)
 
+    reviews = (
+        Review.query
+        .order_by(Review.id.desc())
+        .all()
+    )
 
-@app.route('/add', methods=['POST'])
+    return render_template(
+        "index.html",
+        reviews=reviews,
+        categories=CATEGORIES
+    )
+    
+# ============================
+# ADD REVIEW
+# ============================
+
+@app.route("/add", methods=["POST"])
 def add_review():
-    title = request.form.get('title', '').strip()
-    category = request.form.get('category', CATEGORIES[1])
-    summary = request.form.get('summary', '').strip()
-    details = request.form.get('details', '').strip()
-    image_file = request.files.get('image')
+
+    title = request.form.get("title", "").strip()
+    category = request.form.get("category", CATEGORIES[1])
+    summary = request.form.get("summary", "").strip()
+    details = request.form.get("details", "").strip()
+
+    image_file = request.files.get("image")
 
     if not title or not summary or category not in CATEGORIES:
-        return redirect(url_for('index'))
+        return redirect(url_for("index"))
 
     filename = None
-    if image_file and image_file.filename and allowed_file(image_file.filename):
-        ext = image_file.filename.rsplit('.', 1)[1].lower()
-        filename = secure_filename(f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.{ext}")
-        image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-    conn = get_db()
-    conn.execute(
-        'INSERT INTO reviews (title, category, summary, details, image, created_at) '
-        'VALUES (?, ?, ?, ?, ?, ?)',
-        (title, category, summary, details, filename, datetime.now().strftime('%b %d, %Y'))
+    if (
+        image_file
+        and image_file.filename
+        and allowed_file(image_file.filename)
+    ):
+        ext = image_file.filename.rsplit(".", 1)[1].lower()
+
+        filename = secure_filename(
+            f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.{ext}"
+        )
+
+        image_file.save(
+            os.path.join(
+                app.config["UPLOAD_FOLDER"],
+                filename
+            )
+        )
+
+    review = Review(
+        title=title,
+        category=category,
+        summary=summary,
+        details=details,
+        image=filename,
+        created_at=datetime.now().strftime("%b %d, %Y")
     )
-    conn.commit()
-    conn.close()
-    return redirect(url_for('index'))
+
+    db.session.add(review)
+    db.session.commit()
+
+    return redirect(url_for("index"))
 
 
-@app.route('/update/<int:review_id>', methods=['POST'])
+# ============================
+# UPDATE REVIEW
+# ============================
+
+@app.route("/update/<int:review_id>", methods=["POST"])
 def update_review(review_id):
-    title = request.form.get('title', '').strip()
-    category = request.form.get('category', CATEGORIES[1])
-    summary = request.form.get('summary', '').strip()
-    details = request.form.get('details', '').strip()
-    image_file = request.files.get('image')
+
+    review = Review.query.get_or_404(review_id)
+
+    title = request.form.get("title", "").strip()
+    category = request.form.get("category", CATEGORIES[1])
+    summary = request.form.get("summary", "").strip()
+    details = request.form.get("details", "").strip()
+
+    image_file = request.files.get("image")
 
     if not title or not summary or category not in CATEGORIES:
-        return redirect(url_for('index'))
+        return redirect(url_for("index"))
 
-    conn = get_db()
+    review.title = title
+    review.category = category
+    review.summary = summary
+    review.details = details
 
-    if image_file and image_file.filename and allowed_file(image_file.filename):
-        old_row = conn.execute('SELECT image FROM reviews WHERE id = ?', (review_id,)).fetchone()
-        if old_row and old_row['image']:
-            old_path = os.path.join(app.config['UPLOAD_FOLDER'], old_row['image'])
+    if (
+        image_file
+        and image_file.filename
+        and allowed_file(image_file.filename)
+    ):
+
+        if review.image:
+
+            old_path = os.path.join(
+                app.config["UPLOAD_FOLDER"],
+                review.image
+            )
+
             if os.path.exists(old_path):
                 os.remove(old_path)
-        ext = image_file.filename.rsplit('.', 1)[1].lower()
-        filename = secure_filename(f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.{ext}")
-        image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        conn.execute(
-            'UPDATE reviews SET title=?, category=?, summary=?, details=?, image=? WHERE id=?',
-            (title, category, summary, details, filename, review_id)
-        )
-    else:
-        conn.execute(
-            'UPDATE reviews SET title=?, category=?, summary=?, details=? WHERE id=?',
-            (title, category, summary, details, review_id)
+
+        ext = image_file.filename.rsplit(".", 1)[1].lower()
+
+        filename = secure_filename(
+            f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.{ext}"
         )
 
-    conn.commit()
-    conn.close()
-    return redirect(url_for('index'))
+        image_file.save(
+            os.path.join(
+                app.config["UPLOAD_FOLDER"],
+                filename
+            )
+        )
 
+        review.image = filename
 
-@app.route('/delete/<int:review_id>', methods=['POST'])
+    db.session.commit()
+
+    return redirect(url_for("index"))
+
+# ============================
+# DELETE REVIEW
+# ============================
+
+@app.route("/delete/<int:review_id>", methods=["POST"])
 def delete_review(review_id):
-    conn = get_db()
-    row = conn.execute('SELECT image FROM reviews WHERE id = ?', (review_id,)).fetchone()
-    if row and row['image']:
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], row['image'])
+
+    review = Review.query.get_or_404(review_id)
+
+    if review.image:
+
+        image_path = os.path.join(
+            app.config["UPLOAD_FOLDER"],
+            review.image
+        )
+
         if os.path.exists(image_path):
             os.remove(image_path)
-    conn.execute('DELETE FROM reviews WHERE id = ?', (review_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('index'))
+
+    db.session.delete(review)
+    db.session.commit()
+
+    return redirect(url_for("index"))
 
 
-init_db()
+# ============================
+# RUN
+# ============================
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        debug=True
+    )
