@@ -8,6 +8,8 @@
   --teal-light: #86c2a6;
   --teal-mid: #4c8874;
   --teal-dusty: #58685f;
+  --star: #e8c468;
+  --star-dim: rgba(255, 255, 255, 0.14);
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
@@ -340,6 +342,75 @@ a { color: inherit; }
 
 .chip.type.movie { color: var(--teal-light); border-color: rgba(134, 194, 166, 0.35); }
 .chip.type.tv-series { color: #c9b98a; border-color: rgba(201, 185, 138, 0.35); }
+
+/* ---------- Star rating (display, under the verdict chip) ---------- */
+
+.stars-display {
+  position: relative;
+  display: inline-block;
+  font-size: 0.92rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.stars-display .stars-bg,
+.stars-display .stars-fg,
+.star-picker .stars-bg,
+.star-picker .stars-fg {
+  white-space: nowrap;
+}
+
+.stars-bg { color: var(--star-dim); }
+
+.stars-fg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  color: var(--star);
+  text-shadow: 0 0 10px rgba(232, 196, 104, 0.35);
+}
+
+/* ---------- Star rating picker (in the form) ---------- */
+
+.star-picker {
+  position: relative;
+  display: inline-block;
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.star-picker:focus-visible {
+  outline: 2px solid var(--teal-mid);
+  outline-offset: 4px;
+}
+
+.star-picker-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.clear-rating-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0;
+}
+
+.clear-rating-btn:hover { color: var(--teal-mid); }
 
 .row-meta {
   font-family: var(--font-mono);

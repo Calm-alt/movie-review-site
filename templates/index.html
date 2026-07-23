@@ -86,6 +86,26 @@
           </div>
 
           <div class="field">
+            <label for="rating">Star rating (optional)</label>
+            <div class="star-picker"
+                 id="star-picker"
+                 tabindex="0"
+                 role="slider"
+                 aria-valuemin="0"
+                 aria-valuemax="5"
+                 aria-valuenow="0"
+                 aria-label="Star rating">
+              <div class="stars-bg">★★★★★</div>
+              <div class="stars-fg" id="star-picker-fg">★★★★★</div>
+            </div>
+            <div class="star-picker-footer">
+              <span id="star-value-label">No rating</span>
+              <button type="button" id="clear-rating-btn" class="clear-rating-btn">Clear</button>
+            </div>
+            <input type="hidden" id="rating" name="rating" value="">
+          </div>
+
+          <div class="field">
             <label for="summary">Quick take</label>
             <textarea id="summary"
                       name="summary"
@@ -136,7 +156,8 @@
                  data-category="{{ r.category }}"
                  data-media-type="{{ r.media_type }}"
                  data-summary="{{ r.summary }}"
-                 data-details="{{ r.details or '' }}">
+                 data-details="{{ r.details or '' }}"
+                 data-rating="{{ r.rating if r.rating is not none else '' }}">
 
           <div class="row-poster {{ '' if r.image else 'no-image' }}">
             {% if r.image %}
@@ -160,6 +181,13 @@
                 </span>
               </div>
             </div>
+
+            {% if r.rating is not none %}
+            <div class="stars-display" aria-label="Rated {{ r.rating }} out of 5 stars">
+              <div class="stars-bg">★★★★★</div>
+              <div class="stars-fg" style="width: {{ (r.rating / 5 * 100)|round(2) }}%">★★★★★</div>
+            </div>
+            {% endif %}
 
             <div class="row-meta">
               <span>Reviewed {{ r.created_at }}</span>

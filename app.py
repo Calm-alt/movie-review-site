@@ -140,6 +140,11 @@ class Review(db.Model):
         db.String(255)
     )
 
+    rating = db.Column(
+        db.Float,
+        nullable=True
+    )
+
     created_at = db.Column(
         db.String(50),
         nullable=False
@@ -160,6 +165,19 @@ def allowed_file(filename):
         and filename.rsplit(".", 1)[1].lower()
         in ALLOWED_EXTENSIONS
     )
+
+
+def parse_rating(value):
+    """Parses the submitted rating into a float snapped to the nearest
+    0.5, clamped to 0-5. Returns None if blank/invalid (no rating)."""
+    if value is None or value.strip() == "":
+        return None
+    try:
+        rating = float(value)
+    except (TypeError, ValueError):
+        return None
+    rating = round(rating * 2) / 2
+    return max(0.0, min(5.0, rating))
 
 
 # ============================
@@ -194,6 +212,7 @@ def add_review():
     media_type = request.form.get("media_type", MEDIA_TYPES[0])
     summary = request.form.get("summary", "").strip()
     details = request.form.get("details", "").strip()
+    rating = parse_rating(request.form.get("rating"))
 
     image_file = request.files.get("image")
 
@@ -228,6 +247,7 @@ def add_review():
         summary=summary,
         details=details,
         image=filename,
+        rating=rating,
         created_at=datetime.now().strftime("%b %d, %Y")
     )
 
@@ -252,6 +272,7 @@ def update_review(review_id):
     media_type = request.form.get("media_type", MEDIA_TYPES[0])
     summary = request.form.get("summary", "").strip()
     details = request.form.get("details", "").strip()
+    rating = parse_rating(request.form.get("rating"))
 
     image_file = request.files.get("image")
 
@@ -268,6 +289,7 @@ def update_review(review_id):
     review.media_type = media_type
     review.summary = summary
     review.details = details
+    review.rating = rating
 
     if (
         image_file
