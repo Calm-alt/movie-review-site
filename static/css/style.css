@@ -348,6 +348,7 @@ a { color: inherit; }
 .stars-display {
   position: relative;
   display: inline-block;
+  align-self: flex-start;
   font-size: 0.92rem;
   line-height: 1;
   letter-spacing: 0.14em;
