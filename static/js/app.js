@@ -14,18 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const starPicker = document.getElementById('star-picker');
   const starPickerFg = document.getElementById('star-picker-fg');
   const ratingInput = document.getElementById('rating');
-  const starValueLabel = document.getElementById('star-value-label');
-  const clearRatingBtn = document.getElementById('clear-rating-btn');
 
   function renderStarPicker(value) {
     const pct = value ? (value / 5) * 100 : 0;
     starPickerFg.style.width = `${pct}%`;
     starPicker.setAttribute('aria-valuenow', value || 0);
-    starValueLabel.textContent = value ? `${value} / 5` : 'No rating';
+    starPicker.setAttribute('aria-label', value ? `Star rating: ${value} out of 5` : 'Star rating: none set');
   }
 
   function ratingFromEvent(e) {
-    const rect = starPicker.getBoundingClientRect();
+    const bg = starPicker.querySelector('.stars-bg');
+    const rect = bg.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const frac = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
     return Math.round(frac * 5 * 2) / 2;
@@ -58,10 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         setRating(Math.max(0, current - 0.5));
       }
-    });
-
-    clearRatingBtn.addEventListener('click', () => {
-      setRating(0);
     });
   }
 
