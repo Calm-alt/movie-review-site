@@ -332,7 +332,7 @@ a { color: inherit; }
 
 .chip.must-watch { background: rgba(134, 194, 166, 0.16); color: var(--teal-light); border: 1px solid rgba(134, 194, 166, 0.4); }
 .chip.recommended { background: rgba(76, 136, 116, 0.2); color: var(--teal-mid); border: 1px solid rgba(76, 136, 116, 0.45); }
-.chip.watchable { background: rgba(88, 104, 95, 0.2); color: var(--teal-dusty); border: 1px solid rgba(88, 104, 95, 0.45); }
+.chip.watchable { background: rgba(120, 120, 120, 0.14); color: var(--gray-mid, #8a8a8a); border: 1px solid rgba(120, 120, 120, 0.35); }
 
 .chip.type {
   background: transparent;
