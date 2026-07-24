@@ -11,7 +11,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
-CATEGORIES = ["Must Watch", "Watchable", "Skip It"]
+CATEGORIES = ["Must Watch", "Recommended", "Watchable",]
 MEDIA_TYPES = ["Movie", "TV Series"]
 
 app = Flask(__name__)
